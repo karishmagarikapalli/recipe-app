@@ -1,0 +1,31 @@
+name: Deploy USDA proxy
+
+permissions:
+  contents: read
+
+on:
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Install Wrangler
+        run: npm install --global wrangler@4
+      - name: Upload USDA key as Worker secret
+        env:
+          USDA_API_KEY: ${{ secrets.USDA_API_KEY }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          if [ -z "$USDA_API_KEY" ]; then echo "USDA_API_KEY Actions secret is required" >&2; exit 1; fi
+          printf '%s' "$USDA_API_KEY" | wrangler secret put USDA_API_KEY --config recipe-app/wrangler.toml
+      - name: Deploy Worker
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: wrangler deploy --config recipe-app/wrangler.toml

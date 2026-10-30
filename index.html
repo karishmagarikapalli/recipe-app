@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#f4f6f2">
+    <title>Kitchen Ledger</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="app.css">
+    <script src="app.js" defer></script>
+  </head>
+  <body>
+    <header class="topbar">
+      <a class="brand" href="#overview" aria-label="Kitchen Ledger home">
+        <span class="brand-mark" aria-hidden="true">K</span>
+        <span>kitchen<span class="brand-light">ledger</span></span>
+      </a>
+      <nav class="primary-nav" aria-label="Main navigation">
+        <button class="nav-link is-active" data-tab="overview">Overview</button>
+        <button class="nav-link" data-tab="pantry">Pantry</button>
+        <button class="nav-link" data-tab="journal">Daily log</button>
+        <button class="nav-link" data-tab="supplements">Supplements</button>
+        <button class="nav-link" data-tab="cookbooks">Cookbooks</button>
+      </nav>
+      <button class="settings-button" data-tab="settings" aria-label="Open settings" title="Settings">Settings</button>
+    </header>
+    <main id="app" class="app-shell" aria-live="polite"></main>
+    <dialog id="modal" class="modal"></dialog>
+    <div id="toast" class="toast" role="status" aria-live="polite"></div>
+  </body>
+</html>
