@@ -1,0 +1,2 @@
+USDA_API_KEY=replace-with-a-new-rotated-key
+ALLOWED_ORIGIN=http://127.0.0.1:8001

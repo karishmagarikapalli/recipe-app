@@ -25,8 +25,8 @@ function readState() {
   }
 }
 
-function persist() {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+function persist(nextState = state) {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(nextState));
 }
 
 function esc(value) {
@@ -414,13 +414,48 @@ function exportData() {
   URL.revokeObjectURL(link.href);
 }
 
+function validateBackup(backup) {
+  const isObject = value => value !== null && typeof value === 'object' && !Array.isArray(value);
+  const nonnegative = value => typeof value === 'number' && Number.isFinite(value) && value >= 0;
+  const hasText = (value, key) => typeof value[key] === 'string' && value[key].trim().length > 0;
+  const hasNutrients = value => isObject(value.nutrients) && NUTRIENTS.every(([key]) => nonnegative(value.nutrients[key]));
+  const namedRecord = value => isObject(value) && hasText(value, 'id') && hasText(value, 'name') && hasNutrients(value);
+  const validLog = value => namedRecord(value) && hasText(value, 'date') && (!('time' in value) || typeof value.time === 'string');
+  const validRecipe = value => isObject(value) && hasText(value, 'id') && hasText(value, 'title');
+  const validators = {
+    foods: value => namedRecord(value) && nonnegative(value.quantity) && nonnegative(value.servingGrams) && value.servingGrams > 0,
+    logs: value => validLog(value) && nonnegative(value.grams) && value.grams > 0,
+    supplements: namedRecord,
+    supplementLogs: value => validLog(value) && nonnegative(value.doses) && value.doses > 0,
+    books: value => validRecipe(value) && Array.isArray(value.recipes) && value.recipes.every(validRecipe),
+  };
+  const invalid = () => { throw new Error('This file does not look like a supported Kitchen Ledger backup.'); };
+  if (!isObject(backup) || ('version' in backup && backup.version !== 1)) invalid();
+  const imported = 'state' in backup ? backup.state : backup;
+  if (!isObject(imported) || !Array.isArray(imported.foods) || !Array.isArray(imported.logs)) invalid();
+  const nextState = emptyState();
+  for (const [key, validate] of Object.entries(validators)) {
+    if (!(key in imported)) continue;
+    if (!Array.isArray(imported[key]) || !imported[key].every(validate)) invalid();
+    nextState[key] = imported[key];
+  }
+  if ('targets' in imported) {
+    if (!isObject(imported.targets) || !Object.values(imported.targets).every(nonnegative)) invalid();
+    nextState.targets = imported.targets;
+  }
+  if ('fdcProxyUrl' in imported) {
+    if (typeof imported.fdcProxyUrl !== 'string') invalid();
+    nextState.fdcProxyUrl = imported.fdcProxyUrl;
+  }
+  return nextState;
+}
+
 async function importData(file) {
   try {
     const backup = JSON.parse(await file.text());
-    const imported = backup.state || backup;
-    if (!Array.isArray(imported.foods) || !Array.isArray(imported.logs)) throw new Error('This file does not look like a Kitchen Ledger backup.');
-    state = { ...emptyState(), ...imported };
-    persist();
+    const nextState = validateBackup(backup);
+    persist(nextState);
+    state = nextState;
     render();
     showToast('Backup imported.');
   } catch (error) {

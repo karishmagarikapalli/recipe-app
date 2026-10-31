@@ -1,0 +1,48 @@
+name: Deploy Kitchen Ledger to Pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Test browser app and Worker
+        run: |
+          node --check app.js
+          node --test app.test.cjs worker/worker.test.mjs
+      - name: Stage public site only
+        run: |
+          mkdir -p "$RUNNER_TEMP/recipe-pages"
+          cp index.html app.js app.css "$RUNNER_TEMP/recipe-pages/"
+          node --check "$RUNNER_TEMP/recipe-pages/app.js"
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: ${{ runner.temp }}/recipe-pages
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

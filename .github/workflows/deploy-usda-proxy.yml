@@ -16,6 +16,17 @@ jobs:
           node-version: 22
       - name: Install Wrangler
         run: npm install --global wrangler@4
+      - name: Check deployment secrets
+        env:
+          USDA_API_KEY: ${{ secrets.USDA_API_KEY }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          missing=0
+          for name in USDA_API_KEY CLOUDFLARE_API_TOKEN CLOUDFLARE_ACCOUNT_ID; do
+            if [ -z "${!name}" ]; then echo "Missing required Actions secret: $name" >&2; missing=1; fi
+          done
+          exit "$missing"
       - name: Upload USDA key as Worker secret
         env:
           USDA_API_KEY: ${{ secrets.USDA_API_KEY }}
@@ -23,9 +34,9 @@ jobs:
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
         run: |
           if [ -z "$USDA_API_KEY" ]; then echo "USDA_API_KEY Actions secret is required" >&2; exit 1; fi
-          printf '%s' "$USDA_API_KEY" | wrangler secret put USDA_API_KEY --config recipe-app/wrangler.toml
+          printf '%s' "$USDA_API_KEY" | wrangler secret put USDA_API_KEY --config wrangler.toml
       - name: Deploy Worker
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-        run: wrangler deploy --config recipe-app/wrangler.toml
+        run: wrangler deploy --config wrangler.toml
